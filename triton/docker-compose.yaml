@@ -1,0 +1,84 @@
+x-triton-base-env: &triton-env
+  LOG_LEVEL: "INFO"
+  GRPC_THREADS: 4
+  GRPC_ARG_MAX_CONCURRENT_STREAMS: 8192
+  GRPC_POOL_SIZE: 16384
+  BUFFER_THREADS: 0
+  MODEL_REPO: ${MODEL_REPO?error}
+
+
+x-triton-base: &triton-base
+  image: nvcr.io/nvidia/tritonserver:25.11-py3
+  runtime: nvidia
+  networks:
+      - net
+  command: >
+    bash -lc
+    "LD_PRELOAD=/usr/lib/$$(uname -m)-linux-gnu/libtcmalloc.so.4:$${LD_PRELOAD} 
+    /opt/tritonserver/bin/tritonserver 
+    --model-repository /home/model_repo --model-control-mode=poll --repository-poll-secs 5 
+    --grpc-infer-allocation-pool-size=$$GRPC_POOL_SIZE --grpc-infer-thread-count $$GRPC_THREADS 
+    --pinned-memory-pool-byte-size=2147483648"
+  
+  shm_size: 4g
+  ulimits:
+    memlock: -1
+    stack: 67108864
+  volumes:
+    - $MODEL_REPO/:/home/model_repo
+  # stdin_open: true
+  # tty: true
+
+networks:
+  net:
+    driver: bridge
+
+services:
+  triton_0:
+    <<: *triton-base
+    container_name: triton_0
+    environment:
+      <<: *triton-env
+      NVIDIA_VISIBLE_DEVICES: 1:0 #GPU 1, MIG partition 0
+    cpuset: "24-29,72-77" #L3 cache 3
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+
+  triton_1:
+    <<: *triton-base
+    container_name: triton_1
+    environment:
+      <<: *triton-env
+      NVIDIA_VISIBLE_DEVICES: 1:1 #GPU 1, MIG partition 1
+    cpuset: "30-35,78-83" # L3 cache 3 and 4
+    ports:
+      - "18000:8000"
+      - "18001:8001"
+      - "18002:8002"
+
+  triton_2:
+    <<: *triton-base
+    container_name: triton_2
+    environment:
+      <<: *triton-env
+      NVIDIA_VISIBLE_DEVICES: 1:2 #GPU 1, MIG partition 2
+    cpuset: "36-41,84-89" # L3 cache 4 and 5
+    ports:
+      - "28000:8000"
+      - "28001:8001"
+      - "28002:8002"
+
+  triton_3:
+    <<: *triton-base
+    container_name: triton_3
+    environment:
+      <<: *triton-env
+      NVIDIA_VISIBLE_DEVICES: 1:3 # GPU 1, MIG partition 0
+    cpuset: "42-47,90-95" #L3 cache 5
+    ports:
+      - "38000:8000"
+      - "38001:8001"
+      - "38002:8002"
+
