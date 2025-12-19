@@ -1,0 +1,114 @@
+x-env: &env
+  MODEL: ${MODEL?error}
+
+x-perf-base: &perf-base
+  image: nvcr.io/nvidia/tritonserver:25.11-py3-sdk
+  runtime: nvidia
+  networks:
+      - triton_net
+  command: >
+    bash -lc
+    "LD_PRELOAD=/usr/lib/$$(uname -m)-linux-gnu/libtcmalloc.so.4:$${LD_PRELOAD} 
+    perf_analyzer -v -m $MODEL  --percentile=99 --request-rate-range=${BEGIN:-5000}:100000:${STEP:-1000} -a 
+    -u $$TRITON_URL -i grpc --input-data random --measurement-interval ${WINDOW_SIZE_MSEC:-5000} --max-threads=32 --string-length=16
+    --stability-percentage=80 --latency-threshold=5000 -b ${BATCH_SIZE:-1}"
+
+networks:
+  triton_net:
+    external: true
+
+services:
+  triton0_perf0:
+    <<: *perf-base
+    container_name: triton0_perf0
+    environment:
+      <<: *env
+      TRITON_URL: triton_0:8001
+    cpuset: "0-3" # L3 cache: 0
+
+  triton0_perf1:
+    <<: *perf-base
+    container_name: triton0_perf1
+    environment:
+      <<: *env
+      TRITON_URL: triton_0:8001
+    cpuset: "4-7" # L3 cache: 0
+
+  triton0_perf2:
+    <<: *perf-base
+    container_name: triton0_perf2
+    environment:
+      <<: *env
+      TRITON_URL: triton_0:8001
+    cpuset: "8-11" # L3 cache: 1
+  
+  triton1_perf0:
+    <<: *perf-base
+    container_name: triton1_perf0
+    environment:
+      <<: *env
+      TRITON_URL: triton_1:8001
+    cpuset: "12-15" # L3 cache: 1
+
+  triton1_perf1:
+    <<: *perf-base
+    container_name: triton1_perf1
+    environment:
+      <<: *env
+      TRITON_URL: triton_1:8001
+    cpuset: "16-19" # L3 cache: 2
+
+  triton1_perf2:
+    <<: *perf-base
+    container_name: triton1_perf2
+    environment:
+      <<: *env
+      TRITON_URL: triton_1:8001
+    cpuset: "20-23" # L3 cache: 2
+  
+  triton2_perf0:
+    <<: *perf-base
+    container_name: triton2_perf0
+    environment:
+      <<: *env
+      TRITON_URL: triton_2:8001
+    cpuset: "48-51" # L3 cache: 0
+  
+  triton2_perf1:
+    <<: *perf-base
+    container_name: triton2_perf1
+    environment:
+      <<: *env
+      TRITON_URL: triton_2:8001
+    cpuset: "52-55" # L3 cache: 0
+  triton2_perf2:
+    <<: *perf-base
+    container_name: triton2_perf2
+    environment:
+      <<: *env
+      TRITON_URL: triton_2:8001
+    cpuset: "56-59" # L3 cache: 1
+  
+  triton3_perf0:
+    <<: *perf-base
+    container_name: triton3_perf0
+    environment:
+      <<: *env
+      TRITON_URL: triton_3:8001
+    cpuset: "60-63" # L3 cache: 1
+  
+  triton3_perf1:
+    <<: *perf-base
+    container_name: triton3_perf1
+    environment:
+      <<: *env
+      TRITON_URL: triton_3:8001
+    cpuset: "64-67" # L3 cache: 2
+
+  triton3_perf2:
+    <<: *perf-base
+    container_name: triton3_perf2
+    environment:
+      <<: *env
+      TRITON_URL: triton_3:8001
+    cpuset: "68-71" # L3 cache: 2
