@@ -18,4 +18,5 @@ and have the drivers installed (you need to be able to run `nvidia-smi`).
     * Caveat: This does not configure docker rootless access.
 2. Setup nvidia-docker using `./setup/setup_nvidia_plugin.sh` (run as sudo)
     * You can alter the `NVIDIA_CONTAINER_TOOLKIT_VERSION` in the script to install a different version if needed.
-
+3. (Optional) Setup MIG partitions on your GPUs using `./setup/setup_mig_mode.sh` (run as sudo)
+    * This is a hardcoded script, edit it to suit your needs.
